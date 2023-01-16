@@ -1,4 +1,22 @@
+/**
+题目： https://leetcode.cn/problems/longest-palindromic-substring/
+5. 最长回文子串
+中等
+6.1K
+相关企业
+给你一个字符串 s，找到 s 中最长的回文子串。
 
+如果字符串的反序与原始字符串相同，则该字符串称为回文字符串。
+*/
+
+/**
+题解:
+  最大回文从中间扩展比较快
+  回文有两种情况: abba aba
+  综上得知判断方法为，中点从中间开始向两边：
+     左判断： aba abba
+     又判断: aba abba
+*/
 const char* extend(int *len,const char *s,int i,int j){
     int offset = 0;
     char *l = s + i;
