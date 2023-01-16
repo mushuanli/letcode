@@ -22,12 +22,14 @@ https://leetcode.cn/problems/longest-substring-without-repeating-characters/
 解释: 因为无重复字符的最长子串是 "wke"，所以其长度为 3。
      请注意，你的答案必须是 子串 的长度，"pwke" 是一个子序列，不是子串。
 */
+/* 题目: https://leetcode.cn/problems/longest-substring-without-repeating-characters/
+给定一个字符串 s ，请你找出其中不含有重复字符的 最长子串 的长度。
+*/
 
-/**
-  题解：
-     双指针+ map 
-     重复的意思：设置一个 map 记录当前双指针范围内字符状态
-     如果已经出现，判断是否更新max, 然后左指针前移(同时清除 map 标志)
+/* 题解：
+   利用滑动窗口，用 map 保存窗口中字符的存在状况
+   1。 向右滑动, 直到map判断有重复, 或是已经移动到最后
+   2.  这时左指针右移（同时清除map对应标志）
 */
 int getmax(int left, int right){
     return right < left  ? left : right;
@@ -57,3 +59,4 @@ int lengthOfLongestSubstring(char * s){
 
     return getmax( max ,right - left);
 }
+
