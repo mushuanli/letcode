@@ -10,6 +10,26 @@
    1. 判断 head 是否是重复元素，如果是移动head指针
    2. 判断 p->next 开始是否是重复元素，如果是那么跳过这些
 */
+
+struct ListNode* deleteDuplicates(struct ListNode* head){
+    if( !head || !head->next ) return head;
+
+    struct ListNode* p = head->next;
+    while( p && head->val == p->val ){
+        while( p && head->val == p->val )
+            p = p->next;
+        head = p;
+        if( !head || !head->next )
+            return head;
+        p = head->next;
+    }
+
+    head->next = deleteDuplicates(head->next);
+
+  return head;
+}
+
+#if 0
 struct ListNode* isDup(struct ListNode* p){
     if( !p || !p->next )
         return NULL;
@@ -48,3 +68,4 @@ struct ListNode* deleteDuplicates(struct ListNode* head){
 
   return head;
 }
+#endif
