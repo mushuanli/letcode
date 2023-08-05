@@ -12,17 +12,76 @@
 
 /** 题解:
   3数之和 = 两数之和 - 第三数 = 0
+  思路： I + J <= 0, K >=0, 然后移动最后指针加快速度
 */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
+#define STEP_LEN  1024
+struct matchCtl{
+    int ** retList;
+    int rows;
+    int idx;
+};
+
+/**
+*  1. sort
+*  2. split <0 part and >0 part, then compare and find via 2 arrow
+*/
 int sort_cmpfunc (const void * a, const void * b)
 {
    return ( *(int*)a - *(int*)b );
 }
 
+void saveMatchValue(struct matchCtl *pctl, int v1,int v2,int v3){
+    if( pctl->retList == NULL ){
+        pctl->retList   = malloc(STEP_LEN*sizeof(int *));
+        pctl->rows      = STEP_LEN;
+        pctl->idx       = 0;
+    }
+    else if( pctl->idx +1 == pctl->rows ){
+        int ** retList   = malloc((pctl->rows+STEP_LEN)*sizeof(int *));
+        memcpy(retList,pctl->retList,pctl->rows * sizeof(int *));
+        free(pctl->retList);
+        pctl->retList = retList;
+        pctl->rows += STEP_LEN;
+    }
+
+    int *v = (int *)malloc(3*sizeof(int));
+    v[0]  = v1;
+    v[1]  = v2;
+    v[2]  = v3;
+    pctl->retList[pctl->idx++] = v;
+}
+
+int** ReturnMatchValue(struct matchCtl *pctl,int* returnSize, int** returnColumnSizes){
+   *returnSize = pctl->idx;
+   if( pctl->retList ){
+      int *val = (int *)malloc(3*sizeof(int) * pctl->idx);
+      (*returnColumnSizes) = val;
+      // 本题中每一个元素都是3
+      for (int i = 0; i < pctl->idx; i++) {
+         val[i] = 3;
+      }
+   }
+   else{
+        pctl->retList   = malloc(sizeof(int *));
+        pctl->retList[0]    = NULL;
+   }
+
+   return pctl->retList;
+}
+
+int** returnOne(int* returnSize, int** returnColumnSizes,int v1 ,int v2,int v3){
+    struct matchCtl mctl = {0};
+   saveMatchValue(&mctl,v1,v2,v3);
+   return ReturnMatchValue(&mctl,returnSize, returnColumnSizes);
+}
+
 int** threeSum(int nums[], int numsSize, int* returnSize, int** returnColumnSizes){
-   int retsize          = 0;
-   int **retcode        = NULL;
-   
+   struct matchCtl mctl = {0};
+
    *returnSize          = 0;
 
    if( numsSize < 3){
@@ -32,81 +91,93 @@ int** threeSum(int nums[], int numsSize, int* returnSize, int** returnColumnSize
    // sort first
    qsort(nums, numsSize, sizeof(int), sort_cmpfunc);
 
-   // check border
-   if( nums[numsSize -1 ] < 0 ){
+   // fast check border
+   if( nums[0] >0 || nums[numsSize -1 ] < 0 ){
       return NULL;
    }
-
-   int cstart  = 0;
-   int cend    = numsSize -1;
-   for( ; cstart < numsSize && nums[cstart] < 0 ; cstart ++ ) ;
-   if( cstart == numsSize )
-       return NULL;
-   if( nums[cstart] == 0 && cstart == numsSize -1 ){
-      if( nums[cstart-1] != 0 &&  nums[cstart-2] != 0 )
-         return NULL;
+   if( nums[0] == 0 ){
+       return nums[2] != 0 ? NULL: returnOne( returnSize,returnColumnSizes,0,0,0);
+   }
+   else if( nums[numsSize -1 ] == 0 ){
+       return nums[numsSize-3] != 0 ? NULL: returnOne(returnSize,returnColumnSizes,0,0,0);
    }
 
-   int astart  = 0;
+   // find positive start pos
+   int positive_start = 0;
+   for( ; positive_start < numsSize && nums[positive_start] <= 0 ; positive_start ++ ) ;
 
-   if(numsSize < 2000 )
-      retcode  = (int**)malloc(numsSize *3* sizeof(int*));
-   else
-      retcode  = (int**)malloc(100000* sizeof(int*));
 
-   for( int i = astart ; i < numsSize && nums[i] <= 0 ; i ++ ){
-      if( i > astart && nums[i] == nums[i-1] )
-         continue;
-
-      int ctmp  = cend;
-      int value = nums[i] + nums[i +1];
-      if( value > nums[cstart] )
+   // move 2 arrow to find match, and will skip prev check item(same value)
+   //|-> ^i  ^j  ^k     end<-|      nums[i]+nums[j] = nums[k] * -1 
+   //                               nums[i]+nums[j] <= 0 ; nums[k] >= 0 
+   int start = positive_start;
+   int end = numsSize -1;   // last k index
+   for( int i = 0; i < positive_start ; i ++ ){
+      if( nums[i] == 0 ){
+         if( positive_start - i >= 3){// -1,0,0,0,1
+               saveMatchValue(&mctl,0,0,0);
+         }
          break;
-      value    *= -1;
-      for( ctmp = cend ; nums[ctmp] > value ; ctmp -- );
-      if( nums[ctmp] == value )
-         cend  = ctmp;
-      else if( ctmp < cend )
-         cend  = ctmp +1;
+      }
 
-      for( int j = i+1; j < numsSize ; j ++ ){
+      if( i > 0 && nums[i] == nums[i-1] )
+        continue;
+
+      int value = (nums[i]+nums[i+1])*(-1);
+      if( value <= 0 )
+        break;
+
+    if( value < nums[end] ){
+         while( value < nums[end-1] && end > i  ) end --;
+      }
+      else{
+        if( i+1 == end || -1*(nums[i] + nums[end-1]) > nums[end] )
+          continue;
+      }
+
+      int tmpend = end;
+      for( int j = i+1; j < end; j ++ ){
          if( j > i+1 && nums[j] == nums[j-1] )
-            continue;
-         value = nums[i] + nums[j];
-         if( value > 0 ){
-            break;
-         }
+           continue;
 
-         value *= -1;
-         if( value < nums[j] )
+         int value = (nums[i]+nums[j]);
+
+        if( value > nums[positive_start] )
             break;
-   
-         int cindex = ctmp;
-         for( ; nums[cindex] > value && cindex > cstart && cindex > j; cindex -- ) ;
-         
-         if( nums[cindex] == value ){
-            if( cindex > j ){
-               int *v = (int *)malloc(3*sizeof(int));
-               v[0]  = nums[i];
-               v[1]  = nums[j];
-               v[2]  = value;
-               retcode[retsize++]  = v;
+        
+        value *= -1;
+
+        // kstart <- k <- tmpend
+        int kstart = j+1 > positive_start ? j+1 : positive_start;
+         if( value > nums[tmpend] || value < nums[kstart] )
+           continue;
+        
+         for( int k = tmpend ; k >= kstart ; k -- ){
+            if( nums[k] == value ){
+               saveMatchValue(&mctl,nums[i],nums[j],nums[k]);
+               tmpend = k;
+               break;
             }
-            
-            ctmp  = cindex;
-            continue;
+            else if( nums[k] < value ){
+                tmpend = k;
+               break;
+            }
          }
-         else if( cindex < ctmp )
-            ctmp  = cindex +1;
       }
    }
 
-end:
-   *returnSize          = retsize;
-   (*returnColumnSizes) = (int *)malloc(sizeof(int) * (*returnSize));
-   // 本题中每一个元素都是3
-   for (int i = 0; i < (*returnSize); i++) {
-      (*returnColumnSizes)[i] = 3;
-   }
-   return retcode;
+   return ReturnMatchValue(&mctl,returnSize, returnColumnSizes);
 }
+
+#define V(arr) threeSum(arr,sizeof(arr)/sizeof(int), &returnSize, &returnColumnSizes)
+int main()
+{
+    int returnSize, *returnColumnSizes;
+
+    int arr[]={1,-1,-1,0};
+    int** retList= V(arr);
+    int arr2[]={3,-2,0,1};
+    retList = V(arr2);
+    return 0;
+}
+
